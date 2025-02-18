@@ -1,0 +1,143 @@
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.Scanner;
+
+class TicketBookingSystem {
+    private final boolean[] seats;
+    private final Lock lock = new ReentrantLock();
+
+    public TicketBookingSystem(int numberOfSeats) {
+        seats = new boolean[numberOfSeats];
+    }
+
+    public boolean bookSeat(int seatNumber, String customer) {
+        lock.lock();
+        try {
+            if (seatNumber < 0 || seatNumber >= seats.length) {
+                System.out.println(customer + " attempted to book an invalid seat " + seatNumber);
+                return false;
+            }
+            if (!seats[seatNumber]) {
+                seats[seatNumber] = true;
+                System.out.println(customer + " successfully booked seat " + seatNumber);
+                return true;
+            } else {
+                System.out.println(customer + " sorry! the seat is already booked " + seatNumber);
+                return false;
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean isSeatBooked(int seatNumber) {
+        if (seatNumber < 0 || seatNumber >= seats.length) {
+            return false;
+        }
+        return seats[seatNumber];
+    }
+}
+
+class Customer extends Thread {
+    private final TicketBookingSystem system;
+    private final int seatNumber;
+    private final String customerName;
+
+    public Customer(TicketBookingSystem system, int seatNumber, String customerName, int priority) {
+        this.system = system;
+        this.seatNumber = seatNumber;
+        this.customerName = customerName;
+        setPriority(priority);
+    }
+
+    public void run() {
+        system.bookSeat(seatNumber, customerName);
+    }
+}
+
+public class TicketBookingMain {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        TicketBookingSystem bookingSystem = new TicketBookingSystem(10);
+        
+        while (true) {
+            System.out.println("Select an option: \n1. Book a seat \n2. Check booked seats \n3. Exit");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+            
+            if (choice == 1) {
+                System.out.println("Select seat type: \n1. VIP \n2. Regular");
+                int seatType = scanner.nextInt();
+                scanner.nextLine(); // Consume newline
+                
+                System.out.println("Enter your name: ");
+                String name = scanner.nextLine();
+                
+                System.out.println("Enter seat number (0-9): ");
+                int seatNumber = scanner.nextInt();
+                scanner.nextLine(); // Consume newline
+                
+                int priority = (seatType == 1) ? Thread.MAX_PRIORITY : Thread.NORM_PRIORITY;
+                Thread customerThread = new Customer(bookingSystem, seatNumber, name, priority);
+                customerThread.start();
+            } else if (choice == 2) {
+                System.out.println("Booked seats: ");
+                for (int i = 0; i < 10; i++) {
+                    System.out.println("Seat " + i + " is " + (bookingSystem.isSeatBooked(i) ? "Booked" : "Available"));
+                }
+            } else if (choice == 3) {
+                System.out.println("Exiting...");
+                break;
+            } else {
+                System.out.println("Invalid choice, please try again.");
+            }
+        }
+        scanner.close();
+    }
+}
+// Seat Booking System
+
+// Main menu options
+// 1. Book a seat
+// 2. Check booked seats
+// 3. Exit
+
+// Example Interaction 1: Booking a regular seat
+
+// System Output: Select an option:
+// User Input: 1
+// System Output: Select seat type:
+// System Output: 1. VIP
+// System Output: 2. Regular
+// User Input: 2
+// System Output: Enter your name:
+// User Input: kenny
+// System Output: Enter seat number (0-9):
+// User Input: 3
+// System Output: Select an option:
+// User Input: 1  (This demonstrates going back to the main menu)
+// System Output: Select seat type:
+// System Output: 1. VIP
+// System Output: 2. Regular
+// User Input: 2
+// System Output: Enter your name:
+// User Input: thomas
+// System Output: Enter seat number (0-9):
+// User Input: 3
+// System Output: Select an option:
+// User Input: 3
+// System Output: thomas sorry! the seat is already booked 3
+
+
+// Example Interaction 2 (Implicit - showing successful booking):
+
+// User Input: 1
+// System Output: Select seat type:
+// System Output: 1. VIP
+// System Output: 2. Regular
+// User Input: 2
+// System Output: Enter your name:
+// User Input: kenny
+// System Output: Enter seat number (0-9):
+// User Input: 3
+// System Output: kenny successfully booked seat 3
